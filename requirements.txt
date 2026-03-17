@@ -1,0 +1,8 @@
+pyTelegramBotAPI
+fastapi
+uvicorn
+motor
+requests
+python-dotenv
+aiofiles
+jinja2

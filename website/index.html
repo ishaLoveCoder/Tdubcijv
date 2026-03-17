@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>MovieHub</title>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<header>
+
+<h1>MovieHub</h1>
+
+<input id="search" placeholder="Search movie">
+
+</header>
+
+<div id="hero"></div>
+
+<div id="movies"></div>
+
+<script>
+
+fetch("/movies")
+.then(r=>r.json())
+.then(data=>{
+
+let hero=data[0]
+
+document.getElementById("hero").innerHTML=`
+
+<div class="hero">
+
+<img src="${hero.poster}" width="200">
+
+<div>
+
+<h2>${hero.title}</h2>
+
+<p>${hero.description}</p>
+
+</div>
+
+</div>
+
+`
+
+let html=""
+
+data.forEach(m=>{
+
+html+=`
+
+<div class="movie">
+
+<img src="${m.poster}" width="150">
+
+<h3>${m.title}</h3>
+
+${m.downloads.map(d=>`
+
+<p>${d.quality} ${d.size}</p>
+
+<a href="${d.link}"><button>Download</button></a>
+
+`).join("")}
+
+</div>
+
+`
+
+})
+
+document.getElementById("movies").innerHTML=html
+
+})
+
+</script>
+
+</body>
+
+</html>

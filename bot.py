@@ -1,66 +1,104 @@
 import telebot
 import asyncio
 from config import *
-from parser import detect_quality, detect_size, extract_links
-from imdb_fetch import get_movie
+from parser import *
+from imdb_fetch import get_poster_from_tmdb
 from database import movies
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 
-@bot.message_handler(func=lambda message: True)
-def auto_movie(message):
+def build_download_links(downloads):
+
+    result = []
+
+    for d in downloads:
+
+        if "file_id" in d:
+
+            link = f"https://t.me/{BOT_USERNAME}?start={d['file_id']}"
+
+        else:
+
+            link = d["link"]
+
+        result.append({
+
+            "quality": d["quality"],
+            "size": d["size"],
+            "url": link
+
+        })
+
+    return result
+
+
+@bot.message_handler(func=lambda m: True, content_types=["text","video","document"])
+def handle_post(message):
 
     if message.chat.id != AUTO_CHANNEL:
         return
 
-    text = message.text or ""
+    text = message.text or message.caption or ""
 
-    links = extract_links(text)
+    title = detect_title(text)
+
+    quality = detect_quality(text)
+
+    size = detect_size(text)
+
+    imdb_id = None
+
+    if "tt" in text:
+        imdb_id = "tt" + text.split("tt")[1][:7]
 
     downloads = []
+
+    # TEXT LINKS
+    links = extract_links(text)
 
     for link in links:
 
         downloads.append({
-
-            "quality": detect_quality(text),
-
-            "size": detect_size(text),
-
+            "quality": quality,
+            "size": size,
             "link": link
-
         })
 
-    imdb = None
+    # VIDEO FILE
+    if message.video or message.document:
 
-    if "tt" in text:
+        file = message.video or message.document
 
-        imdb = "tt" + text.split("tt")[1][:7]
+        downloads.append({
+            "quality": quality,
+            "size": str(round(file.file_size/1024/1024,2)) + " MB",
+            "file_id": file.file_id
+        })
 
-    data = {}
+    # POSTER
+    poster = ""
 
-    if imdb:
-
-        data = asyncio.run(get_movie(imdb))
+    if imdb_id:
+        poster = asyncio.run(get_poster_from_tmdb(imdb_id))
 
     doc = {
 
-        "title": data.get("title", "Unknown"),
+        "title": title,
 
-        "description": data.get("description", ""),
+        "imdb_id": imdb_id,
 
-        "poster": data.get("poster", ""),
+        "poster": poster,
 
-        "downloads": downloads
+        "downloads": build_download_links(downloads)
 
     }
 
     asyncio.run(movies.insert_one(doc))
 
-    print("Movie Added")
+    print("Saved:", title)
 
 
-print("Bot Running")
+print("Bot Running...")
 
 bot.infinity_polling()

@@ -3,6 +3,6 @@ from config import MONGO
 
 client = AsyncIOMotorClient(MONGO)
 
-db = client.moviesite
+db = client.movie_file_db
 
 movies = db.movies
